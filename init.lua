@@ -575,6 +575,12 @@ cmp.setup {
 -- Key mapping
 vim.keymap.set('n', 'n', 'nzz', { noremap = true })
 vim.keymap.set('n', 'N', 'Nzz', { noremap = true })
+vim.keymap.set('n', '<C-d>', '<C-d>zz', { noremap = true })
+vim.keymap.set('n', '<C-u>', '<C-u>zz', { noremap = true })
+vim.keymap.set('v', 'n', 'nzz', { noremap = true })
+vim.keymap.set('v', 'N', 'Nzz', { noremap = true })
+vim.keymap.set('v', '<C-d>', '<C-d>zz', { noremap = true })
+vim.keymap.set('v', '<C-u>', '<C-u>zz', { noremap = true })
 vim.keymap.set('n', 'H', '^', { noremap = true })
 vim.keymap.set('n', 'L', '$', { noremap = true })
 vim.keymap.set('v', 'H', '^', { noremap = true })
@@ -582,7 +588,7 @@ vim.keymap.set('v', 'L', '$', { noremap = true })
 vim.keymap.set('o', 'H', '^', { noremap = true })
 vim.keymap.set('o', 'L', '$', { noremap = true })
 vim.keymap.set('n', '<leader>a', 'mmggVG', { noremap = true })
-vim.keymap.set('n', '<Esc><Esc>', ':silent! nohls<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', 'U', ':silent! nohls<CR>', { noremap = true, silent = true })
 vim.keymap.set('t', '<Esc><Esc>', '<c-\\><c-n>', { noremap = true, silent = true })
 -- Replace
 vim.keymap.set('n', '<leader>rr', ':%s//gI<Left><Left><Left>', { noremap = true })
@@ -629,13 +635,14 @@ au BufWinEnter * setlocal cursorline
 au WinLeave * setlocal nocursorline
 au InsertEnter * norm zz
 au BufWritePost config.h !cd '%:p:h' && sudo make clean install && cd ~-
+au TermOpen * setlocal nonumber norelativenumber
 ]]
 
 local signs = {
   Error = '🤬',
   Warn = '😨',
-  Hint = '😉',
-  Info = '🤔',
+  Hint = '🤔',
+  Info = '😉',
 }
 
 for type, icon in pairs(signs) do
