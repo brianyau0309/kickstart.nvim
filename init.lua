@@ -71,7 +71,6 @@ require('lazy').setup({
 
   -- Git related plugins
   'tpope/vim-fugitive',
-  'tpope/vim-rhubarb',
 
   -- Detect tabstop and shiftwidth automatically
   'tpope/vim-sleuth',
@@ -112,7 +111,11 @@ require('lazy').setup({
   },
 
   -- Useful plugin to show you pending keybinds.
-  { 'folke/which-key.nvim',  opts = {} },
+  {
+    'folke/which-key.nvim',
+    opts = {},
+  },
+
   {
     -- Adds git related signs to the gutter, as well as utilities for managing changes
     'lewis6991/gitsigns.nvim',
@@ -183,6 +186,8 @@ require('lazy').setup({
     },
   },
 
+  { 'jose-elias-alvarez/typescript.nvim' },
+
   {
     'jose-elias-alvarez/null-ls.nvim',
     config = function()
@@ -191,8 +196,8 @@ require('lazy').setup({
         sources = {
           null_ls.builtins.formatting.stylua,
           null_ls.builtins.formatting.prettierd,
-          null_ls.builtins.diagnostics.eslint,
           null_ls.builtins.completion.spell,
+          require 'typescript.extensions.null-ls.code-actions',
         },
       }
     end,
@@ -232,6 +237,7 @@ require('lazy').setup({
       }
       vim.keymap.set('n', '<leader>fs', require('auto-session.session-lens').search_session, {
         noremap = true,
+        desc = '[F]earch [S]ession',
       })
     end,
   },
@@ -241,10 +247,24 @@ require('lazy').setup({
     config = function()
       require('lualine').setup {
         options = {
-          icons_enabled = false,
           theme = 'tokyonight',
           component_separators = '|',
           section_separators = '',
+        },
+        sections = {
+          lualine_b = { 'branch', 'diff', 'diagnostics' },
+          lualine_c = {
+            { require('auto-session.lib').current_session_name },
+            {
+              'filename',
+              path = 1,
+            },
+          },
+        },
+        inactive_sections = {
+          lualine_c = {
+            { 'filename', path = 1 },
+          },
         },
       }
     end,
@@ -258,7 +278,10 @@ require('lazy').setup({
     },
   },
 
-  { 'numToStr/Comment.nvim', opts = {} },
+  {
+    'numToStr/Comment.nvim',
+    opts = {}
+  },
 
   -- Fuzzy Finder (files, lsp, etc)
   {
@@ -381,6 +404,9 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 require('telescope').setup {
   defaults = {
     mappings = {
+      n = {
+        ['d'] = 'delete_buffer',
+      },
       i = {
         ['<C-u>'] = false,
         ['<C-d>'] = false,
@@ -590,6 +616,8 @@ vim.keymap.set('o', 'L', '$', { noremap = true })
 vim.keymap.set('n', '<leader>a', 'mmggVG', { noremap = true })
 vim.keymap.set('n', 'U', ':silent! nohls<CR>', { noremap = true, silent = true })
 vim.keymap.set('t', '<Esc><Esc>', '<c-\\><c-n>', { noremap = true, silent = true })
+vim.keymap.set('n', '<C-p>', 'gT', { noremap = true, desc = 'Previous Tab' })
+vim.keymap.set('n', '<C-n>', 'gt', { noremap = true, desc = 'Next Tab' })
 -- Replace
 vim.keymap.set('n', '<leader>rr', ':%s//gI<Left><Left><Left>', { noremap = true })
 vim.keymap.set('v', '<leader>r', ':s//gI<Left><Left><Left>', { noremap = true })
@@ -650,10 +678,109 @@ for type, icon in pairs(signs) do
   vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = '' })
 end
 
-vim.keymap.set('n', '<leader>nt', ':tabnew | term<CR>', { noremap = true, silent = true })
-vim.keymap.set('n', '<leader>nd', ':tabnew .<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<leader>nt', ':tabnew | term<CR>', { noremap = true, silent = true, desc = 'New Terminal in Tab' })
+vim.keymap.set('n', '<leader>nd', ':tabnew .<CR>', { noremap = true, silent = true, desc = 'Current Directory in Tab' })
 vim.g.netrw_liststyle = 3
 vim.g.netrw_hide = 0
+
+vim.cmd [[
+set tabline=%!GetTabLine()
+
+function! GetTabLine()
+  let tabs = BuildTabs()
+  let line = ''
+  for i in range(len(tabs))
+    let line .= (i+1 == tabpagenr()) ? '%#TabLineSel#' : '%#TabLine#'
+    let line .= '%' . (i + 1) . 'T'
+    let line .= ' ' . tabs[i].uniq_name . ' '
+  endfor
+  let line .= '%#TabLineFill#%T'
+  return line
+endfunction
+
+function! BuildTabs()
+  let tabs = []
+  for i in range(tabpagenr('$'))
+    let tabnum = i + 1
+    let buflist = tabpagebuflist(tabnum)
+    let file_path = ''
+    let tab_name = bufname(buflist[0])
+    if tab_name =~ 'NERD_tree' && len(buflist) > 1
+      let tab_name = bufname(buflist[1])
+    end
+    let is_custom_name = 0
+    if tab_name == ''
+      let tab_name = '[No Name]'
+      let is_custom_name = 1
+    elseif tab_name =~ 'fzf'
+      let tab_name = 'FZF'
+      let is_custom_name = 1
+    else
+      let file_path = fnamemodify(tab_name, ':p')
+      let tab_name = fnamemodify(tab_name, ':p:t')
+    end
+    let tab = {
+      \ 'tabnum': tabnum,
+      \ 'name': tab_name,
+      \ 'uniq_name': tabnum . ':' . tab_name,
+      \ 'file_path': file_path,
+      \ 'is_custom_name': is_custom_name
+      \ }
+    call add(tabs, tab)
+  endfor
+  call CalculateTabUniqueNames(tabs)
+  return tabs
+endfunction
+
+function! CalculateTabUniqueNames(tabs)
+  for tab in a:tabs
+    if tab.is_custom_name | continue | endif
+    let tab_common_path = ''
+    for other_tab in a:tabs
+      if tab.name != other_tab.name || tab.file_path == other_tab.file_path
+        \ || other_tab.is_custom_name
+        continue
+      endif
+      let common_path = GetCommonPath(tab.file_path, other_tab.file_path)
+      if tab_common_path == '' || len(common_path) < len(tab_common_path)
+        let tab_common_path = common_path
+      endif
+    endfor
+    if tab_common_path == '' | continue | endif
+    let common_path_has_immediate_child = 0
+    for other_tab in a:tabs
+      if tab.name == other_tab.name && !other_tab.is_custom_name
+        \ && tab_common_path == fnamemodify(other_tab.file_path, ':h')
+        let common_path_has_immediate_child = 1
+        break
+      endif
+    endfor
+    if common_path_has_immediate_child
+      let tab_common_path = fnamemodify(common_path, ':h')
+    endif
+    let path = tab.file_path[len(tab_common_path)+1:-1]
+    let path = fnamemodify(path, ':~:.:h')
+    let dirs = split(path, '/', 1)
+    if len(dirs) >= 5
+      let path = dirs[0] . '/.../' . dirs[-1]
+    endif
+    let tab.uniq_name = tab.tabnum . ':' . path . '/' . tab.name
+  endfor
+endfunction
+
+function! GetCommonPath(path1, path2)
+  let dirs1 = split(a:path1, '/', 1)
+  let dirs2 = split(a:path2, '/', 1)
+  let i_different = 0
+  for i in range(len(dirs1))
+    if get(dirs1, i) != get(dirs2, i)
+      let i_different = i
+      break
+    endif
+  endfor
+  return join(dirs1[0:i_different-1], '/')
+endfunction
+]]
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
