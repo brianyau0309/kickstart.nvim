@@ -196,8 +196,7 @@ require('lazy').setup({
         sources = {
           null_ls.builtins.formatting.stylua,
           null_ls.builtins.formatting.prettierd,
-          null_ls.builtins.completion.spell,
-          require 'typescript.extensions.null-ls.code-actions',
+          -- require 'typescript.extensions.null-ls.code-actions',
         },
       }
     end,
@@ -280,7 +279,7 @@ require('lazy').setup({
 
   {
     'numToStr/Comment.nvim',
-    opts = {}
+    opts = {},
   },
 
   -- Fuzzy Finder (files, lsp, etc)
@@ -324,6 +323,17 @@ require('lazy').setup({
   { 'RRethy/vim-illuminate' },
 
   {
+    'phaazon/hop.nvim',
+    branch = 'v2', -- optional but strongly recommended
+    config = function()
+      local hop = require 'hop'
+      hop.setup { keys = 'etovxqpdygfblzhckisuran' }
+      vim.keymap.set('n', 's', hop.hint_char1, { noremap = true })
+      vim.keymap.set('n', 'S', hop.hint_char2, { noremap = true })
+    end,
+  },
+
+  {
     'windwp/nvim-autopairs',
     dependencies = { 'hrsh7th/nvim-cmp' },
     config = function()
@@ -331,6 +341,29 @@ require('lazy').setup({
       local cmp_autopairs = require 'nvim-autopairs.completion.cmp'
       local cmp = require 'cmp'
       cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+    end,
+  },
+
+  {
+    'luukvbaal/nnn.nvim',
+    opts = {},
+    config = function()
+      local builtin = require('nnn').builtin
+      require('nnn').setup {
+        mappings = {
+          { '<C-t>', builtin.open_in_tab },       -- open file(s) in tab
+          { '<C-s>', builtin.open_in_split },     -- open file(s) in split
+          { '<C-v>', builtin.open_in_vsplit },    -- open file(s) in vertical split
+          { '<C-p>', builtin.open_in_preview },   -- open file in preview split keeping nnn focused
+          { '<C-y>', builtin.copy_to_clipboard }, -- copy file(s) to clipboard
+          { '<C-w>', builtin.cd_to_path },        -- cd to file directory
+          { '<C-e>', builtin.populate_cmdline },  -- populate cmdline (:) with file(s)
+        },
+      }
+      vim.keymap.set('n', '<leader>nc', ':NnnExplorer %:p:h<CR>',
+        { noremap = true, silent = true, desc = 'nnn Explorer' })
+      vim.keymap.set('n', '<leader>nn', ':NnnExplorer<CR>', { noremap = true, silent = true, desc = 'nnn Explorer' })
+      vim.keymap.set('n', '<leader>np', ':NnnPicker<CR>', { noremap = true, silent = true, desc = 'nnn Picker' })
     end,
   },
 
@@ -483,6 +516,7 @@ local on_attach = function(_, bufnr)
 
   nmap('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
   nmap('<leader>qf', vim.lsp.buf.code_action, '[Q]uick [F]ix')
+  nmap('<leader>sa', vim.lsp.buf.code_action, '[S]ource [A]ction')
 
   nmap('gd', vim.lsp.buf.definition, '[G]oto [D]efinition')
   nmap('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
@@ -504,7 +538,11 @@ local on_attach = function(_, bufnr)
 
   -- Create a command `:Format` local to the LSP buffer
   vim.api.nvim_buf_create_user_command(bufnr, 'Format', function(_)
-    vim.lsp.buf.format()
+    vim.lsp.buf.format {
+      filter = function(client)
+        return client.name ~= 'tsserver'
+      end,
+    }
   end, { desc = 'Format current buffer with LSP' })
   nmap('==', ':Format<CR>', 'Format')
 end
@@ -522,8 +560,6 @@ local servers = {
   tsserver = {},
   eslint = {},
   tailwindcss = {},
-  volar = {},
-  svelte = {},
   html = { filetypes = { 'html', 'twig', 'hbs' } },
 
   lua_ls = {
@@ -680,8 +716,6 @@ end
 
 vim.keymap.set('n', '<leader>nt', ':tabnew | term<CR>', { noremap = true, silent = true, desc = 'New Terminal in Tab' })
 vim.keymap.set('n', '<leader>nd', ':tabnew .<CR>', { noremap = true, silent = true, desc = 'Current Directory in Tab' })
-vim.g.netrw_liststyle = 3
-vim.g.netrw_hide = 0
 
 vim.cmd [[
 set tabline=%!GetTabLine()
