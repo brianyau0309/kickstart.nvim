@@ -71,6 +71,7 @@ require('lazy').setup({
 
   -- Git related plugins
   'tpope/vim-fugitive',
+  'rbong/vim-flog',
 
   -- Detect tabstop and shiftwidth automatically
   'tpope/vim-sleuth',
@@ -115,7 +116,6 @@ require('lazy').setup({
     'folke/which-key.nvim',
     opts = {},
   },
-
   {
     -- Adds git related signs to the gutter, as well as utilities for managing changes
     'lewis6991/gitsigns.nvim',
@@ -196,7 +196,7 @@ require('lazy').setup({
         sources = {
           null_ls.builtins.formatting.stylua,
           null_ls.builtins.formatting.prettierd,
-          -- require 'typescript.extensions.null-ls.code-actions',
+          require 'typescript.extensions.null-ls.code-actions',
         },
       }
     end,
@@ -227,6 +227,7 @@ require('lazy').setup({
       require('auto-session').setup {
         log_level = 'error',
         auto_session_suppress_dirs = { '~/', '~/Projects', '~/Downloads', '/' },
+        auto_save_enabled = true,
         session_lens = {
           buftypes_to_ignore = {},
           load_on_setup = true,
@@ -320,8 +321,6 @@ require('lazy').setup({
 
   { 'mbbill/undotree' },
 
-  { 'RRethy/vim-illuminate' },
-
   {
     'phaazon/hop.nvim',
     branch = 'v2', -- optional but strongly recommended
@@ -367,6 +366,8 @@ require('lazy').setup({
     end,
   },
 
+  { 'VidocqH/lsp-lens.nvim', opts = {} },
+
   { 'github/copilot.vim' },
 }, {})
 
@@ -390,6 +391,13 @@ vim.o.mouse = 'a'
 
 -- Enable break indent
 vim.o.breakindent = true
+
+-- Split behavior
+vim.o.splitbelow = true
+vim.o.splitright = true
+
+-- Enable switching between buffers without saving
+vim.o.hidden = true
 
 -- Save undo history
 vim.o.undofile = true
@@ -480,15 +488,6 @@ require('nvim-treesitter.configs').setup {
 
   highlight = { enable = true },
   indent = { enable = true },
-  incremental_selection = {
-    enable = true,
-    keymaps = {
-      init_selection = '<c-space>',
-      node_incremental = '<c-space>',
-      scope_incremental = '<c-s>',
-      node_decremental = '<M-space>',
-    },
-  },
 }
 
 -- Diagnostic keymaps
@@ -700,6 +699,12 @@ au WinLeave * setlocal nocursorline
 au InsertEnter * norm zz
 au BufWritePost config.h !cd '%:p:h' && sudo make clean install && cd ~-
 au TermOpen * setlocal nonumber norelativenumber
+]]
+
+-- show trailing whitespace
+vim.cmd [[
+match ExtraWhitespace / \+$/
+hi ExtraWhitespace ctermbg=red guibg=red
 ]]
 
 local signs = {
