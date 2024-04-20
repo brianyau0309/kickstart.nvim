@@ -194,8 +194,12 @@ require('lazy').setup({
       local null_ls = require 'null-ls'
       null_ls.setup {
         sources = {
+          -- null_ls.builtins.diagnostics.cspell,
+          -- null_ls.builtins.code_actions.cspell,
+          null_ls.builtins.diagnostics.flake8,
           null_ls.builtins.formatting.stylua,
           null_ls.builtins.formatting.prettierd,
+          null_ls.builtins.formatting.black,
           require 'typescript.extensions.null-ls.code-actions',
         },
       }
@@ -272,9 +276,10 @@ require('lazy').setup({
 
   {
     'lukas-reineke/indent-blankline.nvim',
+    main = 'ibl',
     opts = {
-      char = '┊',
-      show_trailing_blankline_indent = false,
+      -- char = '┊',
+      -- show_trailing_blankline_indent = false,
     },
   },
 
@@ -366,7 +371,31 @@ require('lazy').setup({
     end,
   },
 
-  { 'VidocqH/lsp-lens.nvim', opts = {} },
+  {
+    'VidocqH/lsp-lens.nvim',
+    opts = {},
+  },
+
+  -- {
+  --   "rest-nvim/rest.nvim",
+  --   dependencies = { { "nvim-lua/plenary.nvim" } },
+  --   config = function()
+  --     require("rest-nvim").setup({})
+  --     vim.keymap.set('n', '<leader>rh', '<Plug>RestNvim', { noremap = true, silent = true, desc = 'RestNvim' })
+  --     vim.keymap.set('n', '<leader>rp', '<Plug>RestNvimPreview', { noremap = true, silent = true, desc = 'RestNvimPreview' })
+  --   end
+  -- },
+
+  {
+    "edgedb/edgedb-vim",
+    config = function()
+    end
+  },
+
+  {
+    'nvim-treesitter/nvim-treesitter-context',
+    opts = {},
+  },
 
   { 'github/copilot.vim' },
 }, {})
@@ -560,6 +589,7 @@ local servers = {
   eslint = {},
   tailwindcss = {},
   html = { filetypes = { 'html', 'twig', 'hbs' } },
+  pyright = {},
 
   lua_ls = {
     Lua = {
@@ -594,6 +624,8 @@ mason_lspconfig.setup_handlers {
   end,
 }
 
+local _border = 'rounded'
+
 -- [[ Configure nvim-cmp ]]
 -- See `:help cmp`
 local cmp = require 'cmp'
@@ -602,6 +634,14 @@ require('luasnip.loaders.from_vscode').lazy_load()
 luasnip.config.setup {}
 
 cmp.setup {
+  completion = {
+    completeopt = 'menu,menuone,noinsert',
+  },
+  window = {
+    documentation = {
+      border = _border,
+    },
+  },
   snippet = {
     expand = function(args)
       luasnip.lsp_expand(args.body)
@@ -820,6 +860,18 @@ function! GetCommonPath(path1, path2)
   return join(dirs1[0:i_different-1], '/')
 endfunction
 ]]
+
+vim.lsp.handlers['textDocument/hover'] = vim.lsp.with(vim.lsp.handlers.hover, {
+  border = _border,
+})
+
+vim.lsp.handlers['textDocument/signatureHelp'] = vim.lsp.with(vim.lsp.handlers.signature_help, {
+  border = _border,
+})
+
+vim.diagnostic.config {
+  float = { border = _border },
+}
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
